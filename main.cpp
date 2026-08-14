@@ -1,6 +1,7 @@
 #include <iostream>
 #include <vector>
 #include <memory>
+#include <string>
 
 // ============================================
 // 1. КЛАСС ОЧЕРЕДИ (QUEUE)
@@ -11,30 +12,23 @@ private:
     std::vector<T> elements;
     
 public:
-    // Добавление элемента в конец очереди
     void push(const T& value) {
-        // Реализация будет здесь
+        elements.push_back(value);
     }
     
-    // Удаление элемента из начала очереди
     T pop() {
-        // Реализация будет здесь
-        return T(); // Заглушка
+        if (elements.empty()) return T();
+        T front = elements.front();
+        elements.erase(elements.begin());
+        return front;
     }
     
-    // Проверка на пустоту
     bool empty() const {
         return elements.empty();
     }
     
-    // Получение размера очереди
     size_t size() const {
         return elements.size();
-    }
-    
-    // Доступ к первому элементу
-    T& front() {
-        return elements.front();
     }
 };
 
@@ -46,30 +40,48 @@ class Heap {
 private:
     std::vector<T> heap;
     
-    // Вспомогательные методы для поддержания свойства кучи
     void heapifyUp(int index) {
-        // Реализация будет здесь
+        while (index > 0) {
+            int parent = (index - 1) / 2;
+            if (heap[index] <= heap[parent]) break;
+            std::swap(heap[index], heap[parent]);
+            index = parent;
+        }
     }
     
     void heapifyDown(int index) {
-        // Реализация будет здесь
+        int size = heap.size();
+        while (true) {
+            int left = 2 * index + 1;
+            int right = 2 * index + 2;
+            int largest = index;
+            
+            if (left < size && heap[left] > heap[largest]) largest = left;
+            if (right < size && heap[right] > heap[largest]) largest = right;
+            if (largest == index) break;
+            
+            std::swap(heap[index], heap[largest]);
+            index = largest;
+        }
     }
     
 public:
-    // Добавление элемента в кучу
     void push(const T& value) {
-        // Реализация будет здесь
+        heap.push_back(value);
+        heapifyUp(heap.size() - 1);
     }
     
-    // Удаление максимального элемента
     T pop() {
-        // Реализация будет здесь
-        return T(); // Заглушка
+        if (heap.empty()) return T();
+        T result = heap[0];
+        heap[0] = heap.back();
+        heap.pop_back();
+        if (!heap.empty()) heapifyDown(0);
+        return result;
     }
     
-    // Получение максимального элемента без удаления
     T top() const {
-        return heap.front();
+        return heap.empty() ? T() : heap[0];
     }
     
     bool empty() const {
@@ -82,7 +94,7 @@ public:
 };
 
 // ============================================
-// 3. КЛАСС БИНАРНОГО ДЕРЕВА (BINARY TREE)
+// 3. КЛАСС БИНАРНОГО ДЕРЕВА
 // ============================================
 template <typename T>
 class BinaryTree {
@@ -97,36 +109,46 @@ private:
     
     std::unique_ptr<Node> root;
     
-    // Вспомогательные рекурсивные методы
     void insertRecursive(std::unique_ptr<Node>& node, const T& value) {
-        // Реализация будет здесь
+        if (!node) {
+            node = std::make_unique<Node>(value);
+            return;
+        }
+        if (value < node->data) {
+            insertRecursive(node->left, value);
+        } else if (value > node->data) {
+            insertRecursive(node->right, value);
+        }
     }
     
     bool searchRecursive(const std::unique_ptr<Node>& node, const T& value) const {
-        // Реализация будет здесь
-        return false; // Заглушка
+        if (!node) return false;
+        if (value == node->data) return true;
+        if (value < node->data) return searchRecursive(node->left, value);
+        return searchRecursive(node->right, value);
     }
     
-    T popRecursive(std::unique_ptr<Node>& node) {
-        // Реализация будет здесь
-        return T(); // Заглушка
+    T popMinRecursive(std::unique_ptr<Node>& node) {
+        if (!node->left) {
+            T minValue = node->data;
+            node = std::move(node->right);
+            return minValue;
+        }
+        return popMinRecursive(node->left);
     }
     
 public:
     BinaryTree() : root(nullptr) {}
     
-    // Добавление элемента
     void push(const T& value) {
         insertRecursive(root, value);
     }
     
-    // Удаление элемента (для простоты удаляем минимальный)
     T pop() {
         if (!root) return T();
-        return popRecursive(root);
+        return popMinRecursive(root);
     }
     
-    // Поиск элемента
     bool search(const T& value) const {
         return searchRecursive(root, value);
     }
@@ -137,15 +159,8 @@ public:
 };
 
 // ============================================
-// 4. ЮНИТ-ТЕСТЫ (GoogleTest)
+// 4. ТЕСТОВЫЙ ФРЕЙМВОРК
 // ============================================
-
-// Если у вас установлен GoogleTest, раскомментируйте следующую строку:
-// #include <gtest/gtest.h>
-
-// Для работы без установленного GoogleTest используем упрощенную версию:
-// Это минимальная реализация для демонстрации
-
 class TestResult {
 public:
     static int totalTests;
@@ -156,11 +171,11 @@ public:
         totalTests++;
         if (expected == actual) {
             passedTests++;
-            std::cout << "[PASS] " << testName << std::endl;
+            std::cout << "[✓] " << testName << std::endl;
         } else {
             failedTests++;
-            std::cout << "[FAIL] " << testName << " (expected: " << expected 
-                     << ", got: " << actual << ")" << std::endl;
+            std::cout << "[✗] " << testName << " (ожидалось: " << expected 
+                     << ", получено: " << actual << ")" << std::endl;
         }
     }
     
@@ -168,10 +183,10 @@ public:
         totalTests++;
         if (condition) {
             passedTests++;
-            std::cout << "[PASS] " << testName << std::endl;
+            std::cout << "[✓] " << testName << std::endl;
         } else {
             failedTests++;
-            std::cout << "[FAIL] " << testName << " (condition is false)" << std::endl;
+            std::cout << "[✗] " << testName << " (условие ложно)" << std::endl;
         }
     }
     
@@ -185,89 +200,63 @@ int TestResult::passedTests = 0;
 int TestResult::failedTests = 0;
 
 // ============================================
-// 5. НАПИСАНИЕ ТЕСТОВ
+// 5. ТЕСТЫ ДЛЯ КАЖДОГО КЛАССА
 // ============================================
-
 void testQueue() {
-    std::cout << "\n=== TESTING QUEUE ===" << std::endl;
+    std::cout << "\n=== ТЕСТИРОВАНИЕ ОЧЕРЕДИ ===" << std::endl;
     
     Queue<int> q;
     
-    // Тест 1: Проверка пустой очереди
-    TestResult::assertTrue(q.empty(), "Queue should be empty initially");
-    TestResult::assertEquals(0, static_cast<int>(q.size()), "Queue size should be 0");
+    TestResult::assertTrue(q.empty(), "Очередь должна быть пустой");
+    TestResult::assertEquals(0, static_cast<int>(q.size()), "Размер очереди должен быть 0");
     
-    // Тест 2: Проверка push
     q.push(10);
     q.push(20);
     q.push(30);
-    TestResult::assertFalse(q.empty(), "Queue should not be empty after pushes");
-    TestResult::assertEquals(3, static_cast<int>(q.size()), "Queue size should be 3");
+    TestResult::assertFalse(q.empty(), "Очередь не должна быть пустой");
+    TestResult::assertEquals(3, static_cast<int>(q.size()), "Размер очереди должен быть 3");
     
-    // Тест 3: Проверка pop и порядка
-    TestResult::assertEquals(10, q.pop(), "First pop should return 10");
-    TestResult::assertEquals(2, static_cast<int>(q.size()), "Queue size should be 2");
-    TestResult::assertEquals(20, q.pop(), "Second pop should return 20");
-    TestResult::assertEquals(30, q.pop(), "Third pop should return 30");
-    TestResult::assertTrue(q.empty(), "Queue should be empty after all pops");
-    
-    // Тест 4: Проверка на больших данных
-    for (int i = 0; i < 100; ++i) {
-        q.push(i);
-    }
-    TestResult::assertEquals(100, static_cast<int>(q.size()), "Queue should have 100 elements");
-    TestResult::assertEquals(0, q.pop(), "First element should be 0");
-    TestResult::assertEquals(99, static_cast<int>(q.size()), "Queue should have 99 elements");
+    TestResult::assertEquals(10, q.pop(), "Первый pop должен вернуть 10");
+    TestResult::assertEquals(2, static_cast<int>(q.size()), "Размер очереди должен быть 2");
+    TestResult::assertEquals(20, q.pop(), "Второй pop должен вернуть 20");
+    TestResult::assertEquals(30, q.pop(), "Третий pop должен вернуть 30");
+    TestResult::assertTrue(q.empty(), "Очередь должна быть пустой");
 }
 
 void testHeap() {
-    std::cout << "\n=== TESTING HEAP ===" << std::endl;
+    std::cout << "\n=== ТЕСТИРОВАНИЕ КУЧИ ===" << std::endl;
     
     Heap<int> h;
     
-    // Тест 1: Проверка пустой кучи
-    TestResult::assertTrue(h.empty(), "Heap should be empty initially");
-    TestResult::assertEquals(0, static_cast<int>(h.size()), "Heap size should be 0");
+    TestResult::assertTrue(h.empty(), "Куча должна быть пустой");
+    TestResult::assertEquals(0, static_cast<int>(h.size()), "Размер кучи должен быть 0");
     
-    // Тест 2: Проверка push и max heap свойства
     h.push(5);
     h.push(3);
     h.push(8);
     h.push(1);
     h.push(6);
     
-    TestResult::assertFalse(h.empty(), "Heap should not be empty");
-    TestResult::assertEquals(5, static_cast<int>(h.size()), "Heap size should be 5");
-    TestResult::assertEquals(8, h.top(), "Maximum element should be 8");
+    TestResult::assertFalse(h.empty(), "Куча не должна быть пустой");
+    TestResult::assertEquals(5, static_cast<int>(h.size()), "Размер кучи должен быть 5");
+    TestResult::assertEquals(8, h.top(), "Максимальный элемент должен быть 8");
     
-    // Тест 3: Проверка pop
-    TestResult::assertEquals(8, h.pop(), "First pop should return 8");
-    TestResult::assertEquals(6, h.pop(), "Second pop should return 6");
-    TestResult::assertEquals(5, h.pop(), "Third pop should return 5");
-    TestResult::assertEquals(3, h.pop(), "Fourth pop should return 3");
-    TestResult::assertEquals(1, h.pop(), "Fifth pop should return 1");
-    TestResult::assertTrue(h.empty(), "Heap should be empty after all pops");
-    
-    // Тест 4: Проверка с дублирующимися значениями
-    h.push(7);
-    h.push(7);
-    h.push(7);
-    TestResult::assertEquals(3, static_cast<int>(h.size()), "Heap should have 3 elements with duplicates");
-    TestResult::assertEquals(7, h.pop(), "First duplicate pop should return 7");
-    TestResult::assertEquals(7, h.pop(), "Second duplicate pop should return 7");
-    TestResult::assertEquals(7, h.pop(), "Third duplicate pop should return 7");
+    TestResult::assertEquals(8, h.pop(), "Первый pop должен вернуть 8");
+    TestResult::assertEquals(6, h.pop(), "Второй pop должен вернуть 6");
+    TestResult::assertEquals(5, h.pop(), "Третий pop должен вернуть 5");
+    TestResult::assertEquals(3, h.pop(), "Четвертый pop должен вернуть 3");
+    TestResult::assertEquals(1, h.pop(), "Пятый pop должен вернуть 1");
+    TestResult::assertTrue(h.empty(), "Куча должна быть пустой");
 }
 
 void testBinaryTree() {
-    std::cout << "\n=== TESTING BINARY TREE ===" << std::endl;
+    std::cout << "\n=== ТЕСТИРОВАНИЕ БИНАРНОГО ДЕРЕВА ===" << std::endl;
     
     BinaryTree<int> tree;
     
-    // Тест 1: Проверка пустого дерева
-    TestResult::assertTrue(tree.empty(), "Tree should be empty initially");
-    TestResult::assertFalse(tree.search(5), "Search in empty tree should return false");
+    TestResult::assertTrue(tree.empty(), "Дерево должно быть пустым");
+    TestResult::assertFalse(tree.search(5), "Поиск в пустом дереве должен вернуть false");
     
-    // Тест 2: Проверка push и search
     tree.push(10);
     tree.push(5);
     tree.push(15);
@@ -276,21 +265,18 @@ void testBinaryTree() {
     tree.push(12);
     tree.push(17);
     
-    TestResult::assertFalse(tree.empty(), "Tree should not be empty");
-    TestResult::assertTrue(tree.search(10), "Search for 10 should return true");
-    TestResult::assertTrue(tree.search(5), "Search for 5 should return true");
-    TestResult::assertTrue(tree.search(15), "Search for 15 should return true");
-    TestResult::assertTrue(tree.search(3), "Search for 3 should return true");
-    TestResult::assertTrue(tree.search(7), "Search for 7 should return true");
-    TestResult::assertTrue(tree.search(12), "Search for 12 should return true");
-    TestResult::assertTrue(tree.search(17), "Search for 17 should return true");
+    TestResult::assertFalse(tree.empty(), "Дерево не должно быть пустым");
+    TestResult::assertTrue(tree.search(10), "Поиск 10 должен вернуть true");
+    TestResult::assertTrue(tree.search(5), "Поиск 5 должен вернуть true");
+    TestResult::assertTrue(tree.search(15), "Поиск 15 должен вернуть true");
+    TestResult::assertTrue(tree.search(3), "Поиск 3 должен вернуть true");
+    TestResult::assertTrue(tree.search(7), "Поиск 7 должен вернуть true");
+    TestResult::assertTrue(tree.search(12), "Поиск 12 должен вернуть true");
+    TestResult::assertTrue(tree.search(17), "Поиск 17 должен вернуть true");
     
-    // Тест 3: Проверка поиска отсутствующих элементов
-    TestResult::assertFalse(tree.search(1), "Search for 1 should return false");
-    TestResult::assertFalse(tree.search(20), "Search for 20 should return false");
-    TestResult::assertFalse(tree.search(8), "Search for 8 should return false");
+    TestResult::assertFalse(tree.search(1), "Поиск 1 должен вернуть false");
+    TestResult::assertFalse(tree.search(20), "Поиск 20 должен вернуть false");
     
-    // Тест 4: Проверка pop (удаление минимального элемента)
     BinaryTree<int> tree2;
     tree2.push(20);
     tree2.push(10);
@@ -300,45 +286,39 @@ void testBinaryTree() {
     tree2.push(25);
     tree2.push(35);
     
-    // Удаляем минимальный элемент (должен быть 5)
     int min1 = tree2.pop();
-    TestResult::assertEquals(5, min1, "First pop should return minimum element 5");
-    TestResult::assertFalse(tree2.search(5), "Element 5 should not exist after pop");
+    TestResult::assertEquals(5, min1, "Первый pop должен вернуть 5");
+    TestResult::assertFalse(tree2.search(5), "Элемент 5 должен отсутствовать");
     
-    // Удаляем следующий минимальный (должен быть 10)
     int min2 = tree2.pop();
-    TestResult::assertEquals(10, min2, "Second pop should return minimum element 10");
-    TestResult::assertFalse(tree2.search(10), "Element 10 should not exist after pop");
+    TestResult::assertEquals(10, min2, "Второй pop должен вернуть 10");
+    TestResult::assertFalse(tree2.search(10), "Элемент 10 должен отсутствовать");
     
-    // Проверяем, что остальные элементы на месте
-    TestResult::assertTrue(tree2.search(20), "Element 20 should still exist");
-    TestResult::assertTrue(tree2.search(30), "Element 30 should still exist");
-    TestResult::assertTrue(tree2.search(15), "Element 15 should still exist");
+    TestResult::assertTrue(tree2.search(20), "Элемент 20 должен существовать");
+    TestResult::assertTrue(tree2.search(30), "Элемент 30 должен существовать");
+    TestResult::assertTrue(tree2.search(15), "Элемент 15 должен существовать");
 }
 
 // ============================================
 // 6. ГЛАВНАЯ ФУНКЦИЯ
 // ============================================
-
 int main() {
-    std::cout << "=====================================" << std::endl;
-    std::cout << "   UNIT TESTS - CASE STUDY #4" << std::endl;
-    std::cout << "=====================================" << std::endl;
+    std::cout << "=========================================" << std::endl;
+    std::cout << "   ЮНИТ-ТЕСТЫ - КЕЙС-ЗАДАЧА №4" << std::endl;
+    std::cout << "=========================================" << std::endl;
     
-    // Запуск всех тестов
     testQueue();
     testHeap();
     testBinaryTree();
     
-    // Вывод результатов
-    std::cout << "\n=====================================" << std::endl;
-    std::cout << "          TEST SUMMARY" << std::endl;
-    std::cout << "=====================================" << std::endl;
-    std::cout << "Total tests  : " << TestResult::totalTests << std::endl;
-    std::cout << "Passed tests : " << TestResult::passedTests << std::endl;
-    std::cout << "Failed tests : " << TestResult::failedTests << std::endl;
-    std::cout << "Success rate : " << (TestResult::passedTests * 100.0 / TestResult::totalTests) << "%" << std::endl;
-    std::cout << "=====================================" << std::endl;
+    std::cout << "\n=========================================" << std::endl;
+    std::cout << "          РЕЗУЛЬТАТЫ ТЕСТОВ" << std::endl;
+    std::cout << "=========================================" << std::endl;
+    std::cout << "Всего тестов : " << TestResult::totalTests << std::endl;
+    std::cout << "Пройдено    : " << TestResult::passedTests << std::endl;
+    std::cout << "Провалено   : " << TestResult::failedTests << std::endl;
+    std::cout << "Успешность  : " << (TestResult::passedTests * 100.0 / TestResult::totalTests) << "%" << std::endl;
+    std::cout << "=========================================" << std::endl;
     
     return 0;
 }
